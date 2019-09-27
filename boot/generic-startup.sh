@@ -117,6 +117,9 @@ if [ -f /proc/device-tree/model ] ; then
 	BeagleBoard.org_BeagleBone_AI)
 		script="bbai.sh"
 		;;
+	Seeed_i\.MX6_ULL_NPi_Board)
+		script="imx6ull_npi.sh"
+		;;
 	*)
 		script="generic.sh"
 		;;
