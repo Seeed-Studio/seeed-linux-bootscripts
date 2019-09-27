@@ -72,13 +72,18 @@ dual_partition () {
 	conf_boot_endmb=${conf_boot_endmb:-"96"}
 	sfdisk_fstype=${sfdisk_fstype:-"E"}
 
+	echo "sfdisk: 2.33.1 bug for default start/size"
+	conf_root_start=$(sfdisk -uS -d ${drive} | sed -nre "s/[^:]+2 : *start= *([0-9]+),.*/\1/p")
+	conf_root_end=$(sfdisk -s ${drive}) # KB
+	conf_root_end=$(expr $conf_root_end \* 2 - 200 \* 2408 - $conf_boot_endmb \* 2048) # sectors
+
 	sfdisk_options="--force --no-reread --Linux --in-order --unit M"
 	test_sfdisk=$(LC_ALL=C sfdisk --help | grep -m 1 -e "--in-order" || true)
 	if [ "x${test_sfdisk}" = "x" ] ; then
 		echo "sfdisk: 2.26.x or greater"
 		sfdisk_options="--force --no-reread"
 		if [ "x${uboot_efi_mode}" = "xenable" ] ; then
-			sfdisk_options="--force --no-reread --label gpt"
+			sfdisk_options="$sfdisk_options --label gpt"
 		fi
 		conf_boot_startmb="${conf_boot_startmb}M"
 		conf_boot_endmb="${conf_boot_endmb}M"
@@ -86,7 +91,7 @@ dual_partition () {
 
 	LC_ALL=C sfdisk ${sfdisk_options} ${drive} <<-__EOF__
 		${conf_boot_startmb},${conf_boot_endmb},${sfdisk_fstype},*
-		,,,-
+		${conf_root_start},${conf_root_end},0x83,-
 	__EOF__
 }
 
