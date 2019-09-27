@@ -95,10 +95,6 @@ if [ -f /var/run/udhcpd.pid ] ; then
 	/etc/init.d/udhcpd stop || true
 fi
 
-if [ ! -f /etc/systemd/system/getty.target.wants/serial-getty@ttyGS0.service ] ; then
-	ln -s /lib/systemd/system/serial-getty@.service /etc/systemd/system/getty.target.wants/serial-getty@ttyGS0.service
-fi
-
 run_libcomposite () {
 	udc=$(ls -1 /sys/class/udc/ | head -n 1)
 	if [ -z "$udc" ]; then
@@ -261,4 +257,25 @@ if [ "x${check_getty_tty}" = "xinactive" ] ; then
 	systemctl restart serial-getty@ttyGS0.service || true
 fi
 
+# save the random mac address if unexist
+wfile="/boot/uEnv.txt"
+keth0addr=$(sed -nre 's/^ *eth1addr=([0-9a-fA-F:]+) *$/\1/p' $wfile)
+if [ "x${keth0addr}" = "x" ] ; then
+	rndaddr=$(ip address show dev eth0 | sed -nre 's/ *link\/ether ([0-9a-fA-F:]+) .*/\1/p')
+	echo "# specify kernel eth0 mac address" >> $wfile
+	echo "# kernel eth0 is u-boot eth1" >> $wfile
+	echo "eth1addr=$rndaddr" >> $wfile
+	echo "" >> $wfile
+	sync
+fi
+
+keth1addr=$(sed -nre 's/^ *ethaddr=([0-9a-fA-F:]+) *$/\1/p' $wfile)
+if [ "x${keth1addr}" = "x" ] ; then
+	rndaddr=$(ip address show dev eth1 | sed -nre 's/ *link\/ether ([0-9a-fA-F:]+) .*/\1/p')
+	echo "# specify kernel eth1 mac address" >> $wfile
+	echo "# kernel eth1 is u-boot eth0" >> $wfile
+	echo "ethaddr=$rndaddr" >> $wfile
+	echo "" >> $wfile
+	sync
+fi
 #
