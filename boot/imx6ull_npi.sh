@@ -1,6 +1,7 @@
 #!/bin/sh -e
 #
 # Copyright (c) 2013-2017 Robert Nelson <robertcnelson@gmail.com>
+# Copyright (c) 2019      turmary <turmary@126.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -37,10 +38,12 @@ disable_connman_dnsproxy () {
 	fi
 }
 
-if [ -f /etc/rcn-ee.conf ] ; then
-	. /etc/rcn-ee.conf
+if [ -f /etc/default/platform ] ; then
+        unset USB_NETWORK_DISABLED
+        . /etc/default/platform
 fi
 
+log="imx6ull_npi:"
 
 usb_gadget="/sys/kernel/config/usb_gadget"
 
@@ -70,6 +73,8 @@ if [ ! "x${usb_image_file}" = "x" ] ; then
 	echo "${log} usb_image_file=[`readlink -f ${usb_image_file}`]"
 fi
 
+usb_imanufacturer="Seeed"
+usb_iproduct="npi"
 
 #mac address:
 #usb_0_mac = usb0 (USB device side)
@@ -95,10 +100,19 @@ if [ ! -f /etc/systemd/system/getty.target.wants/serial-getty@ttyGS0.service ] ;
 fi
 
 run_libcomposite () {
-	if [ ! -d /sys/kernel/config/usb_gadget/g_multi/ ] ; then
+	udc=$(ls -1 /sys/class/udc/ | head -n 1)
+	if [ -z "$udc" ]; then
+		echo "No UDC driver registered"
+		return 1
+	fi
+
+	# if [ ! -d /sys/kernel/config/usb_gadget/g_multi/ ] ; then
 		echo "${log} Creating g_multi"
 		mkdir -p /sys/kernel/config/usb_gadget/g_multi || true
 		cd /sys/kernel/config/usb_gadget/g_multi
+
+		echo "" > UDC || true
+		sleep 1
 
 		echo ${usb_bcdUSB} > bcdUSB
 		echo ${usb_idVendor} > idVendor # Linux Foundation
@@ -131,14 +145,10 @@ run_libcomposite () {
 			# https://answers.microsoft.com/en-us/windows/forum/windows_10-networking-winpc/windows-10-vs-remote-ndis-ethernet-usbgadget-not/cb30520a-753c-4219-b908-ad3d45590447
 			# https://www.spinics.net/lists/linux-usb/msg107185.html
 			echo 1 > os_desc/use
-			echo CD > os_desc/b_vendor_code
-			echo MSFT100 > os_desc/qw_sign
-			echo "RNDIS" > functions/rndis.usb0/os_desc/interface.rndis/compatible_id
-			echo "5162001" > functions/rndis.usb0/os_desc/interface.rndis/sub_compatible_id
-
-			mkdir -p functions/ecm.usb0
-			echo ${cpsw_4_mac} > functions/ecm.usb0/host_addr
-			echo ${cpsw_5_mac} > functions/ecm.usb0/dev_addr
+			echo CD > os_desc/b_vendor_code || true
+			echo MSFT100 > os_desc/qw_sign || true
+			echo "RNDIS" > functions/rndis.usb0/os_desc/interface.rndis/compatible_id  || true
+			echo "5162001" > functions/rndis.usb0/os_desc/interface.rndis/sub_compatible_id || true
 		fi
 
 		mkdir -p functions/acm.usb0
@@ -167,9 +177,7 @@ run_libcomposite () {
 			mkdir functions/rndis.usb0/os_desc/interface.rndis/Label
 			echo 1 > functions/rndis.usb0/os_desc/interface.rndis/Label/type
 			echo "BeagleBone USB Ethernet" > functions/rndis.usb0/os_desc/interface.rndis/Label/data
-
 			ln -s functions/rndis.usb0 configs/c.1/
-			ln -s functions/ecm.usb0 configs/c.1/
 		fi
 		ln -s functions/acm.usb0 configs/c.1/
 		if [ "x${has_img_file}" = "xtrue" ] ; then
@@ -177,13 +185,15 @@ run_libcomposite () {
 		fi
 
 		#ls /sys/class/udc
+		if [ -n "$udc" ] ; then
+			echo "$udc" > UDC
 		fi
 
 		usb0="enable"
 		echo "${log} g_multi Created"
-	else
-		echo "${log} FIXME: need to bring down g_multi first, before running a second time."
-	fi
+	#else
+	#	echo "${log} FIXME: need to bring down g_multi first, before running a second time."
+	#fi
 }
 
 use_libcomposite () {
@@ -191,7 +201,7 @@ use_libcomposite () {
 	unset has_img_file
 	if [ "x${USB_IMAGE_FILE_DISABLED}" = "xyes" ]; then
 		echo "${log} usb_image_file disabled by bb-boot config file."
-	elif [ -f ${usb_image_file} ] ; then
+	elif [ -f "${usb_image_file}" ] ; then
 		actual_image_file=$(readlink -f ${usb_image_file} || true)
 		if [ ! "x${actual_image_file}" = "x" ] ; then
 			if [ -f ${actual_image_file} ] ; then
