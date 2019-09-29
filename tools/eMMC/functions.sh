@@ -262,7 +262,7 @@ teardown_environment() {
   if [ ! "x${boot_drive}" = "x${root_drive}" ] ; then
     echo_broadcast "==> Unmounting /boot"
     flush_cache
-    umount /boot || true
+    umount /boot/uboot || true
   fi
   reset_leds 'none'
 
@@ -944,9 +944,9 @@ _generate_fstab() {
 		#UUID support for 3.8.x kernel
 		if [ -d /sys/devices/bone_capemgr.*/ ] ; then
 			boot_fs_id=$(get_fstab_id_for_device ${boot_partition})
-			echo "${boot_fs_id} /boot/uboot auto defaults 0 0" >> ${tmp_rootfs_dir}/etc/fstab
+			echo "${boot_fs_id} /boot auto defaults 0 0" >> ${tmp_rootfs_dir}/etc/fstab
 		else
-			echo "${boot_partition} /boot/uboot auto defaults 0 0" >> ${tmp_rootfs_dir}/etc/fstab
+			echo "${boot_partition} /boot auto defaults 0 0" >> ${tmp_rootfs_dir}/etc/fstab
 		fi
 
 	fi
