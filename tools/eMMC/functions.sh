@@ -793,13 +793,18 @@ _dd_bootloader() {
   generate_line 80 '='
   echo_broadcast "Writing bootloader to [${destination}]"
   generate_line 40
-  _build_uboot_spl_dd_options
+
+  if [ "x${bootloader_location}" = "xdd_spl_uboot_boot" ] ; then
+    _build_uboot_spl_dd_options
+
+    echo_broadcast "==> Copying SPL U-Boot with dd if=${dd_spl_uboot_backup} of=${destination} ${dd_spl_uboot}"
+    generate_line 60
+    dd if=${dd_spl_uboot_backup} of=${destination} ${dd_spl_uboot}
+    generate_line 60
+  fi
+
   _build_uboot_dd_options
 
-  echo_broadcast "==> Copying SPL U-Boot with dd if=${dd_spl_uboot_backup} of=${destination} ${dd_spl_uboot}"
-  generate_line 60
-  dd if=${dd_spl_uboot_backup} of=${destination} ${dd_spl_uboot}
-  generate_line 60
   echo_broadcast "==> Copying U-Boot with dd if=${dd_uboot_backup} of=${destination} ${dd_uboot}"
   generate_line 60
   dd if=${dd_uboot_backup} of=${destination} ${dd_uboot}
@@ -1124,7 +1129,11 @@ loading_soc_defaults() {
 			generate_line 60 '*'
 			. ${soc_file}
 			echo_broadcast "==> Loaded"
-			if [ "x${dd_spl_uboot_backup}" = "x" ] ; then
+
+			if [ "x${bootloader_location}" = "x" ] ; then
+				bootloader_location="dd_spl_uboot_boot"
+			fi
+			if [ "x${bootloader_location}" = "xdd_spl_uboot_boot" ] && [ "x${dd_spl_uboot_backup}" = "x" ] ; then
 				echo_broadcast "==> ${soc_file} missing dd SPL"
 				spl_uboot_name="MLO"
 				dd_spl_uboot_count="1"
@@ -1141,7 +1150,7 @@ loading_soc_defaults() {
 				echo "dd_spl_uboot_bs=128k" >> ${soc_file}
 				echo "dd_spl_uboot_backup=${dd_spl_uboot_backup}" >> ${soc_file}
 			fi
-			if [ ! -f /opt/backup/uboot/MLO ] ; then
+			if [ "x${bootloader_location}" = "xdd_spl_uboot_boot" ] && [ ! -f /opt/backup/uboot/MLO ] ; then
 				echo_broadcast "==> missing /opt/backup/uboot/MLO"
 				mkdir -p /opt/backup/uboot/
 				wget --directory-prefix=/opt/backup/uboot/ http://rcn-ee.com/repos/bootloader/am335x_evm/${http_spl}
@@ -1165,7 +1174,7 @@ loading_soc_defaults() {
 				echo "dd_uboot_backup=${dd_uboot_backup}" >> ${soc_file}
 			fi
 
-			if [ ! -f /opt/backup/uboot/u-boot.img ] ; then
+			if [ ! -f "${dd_uboot_backup}" ] ; then
 				echo_broadcast "==> missing /opt/backup/uboot/u-boot.img"
 				mkdir -p /opt/backup/uboot/
 				wget --directory-prefix=/opt/backup/uboot/ http://rcn-ee.com/repos/bootloader/am335x_evm/${http_uboot}
@@ -1182,6 +1191,9 @@ loading_soc_defaults() {
 		else
 			echo_broadcast "!==> Could not find ${soc_file}, no defaults are loaded"
 		fi
+	fi
+	if [ "x${bootloader_location}" = "x" ] ; then
+		bootloader_location="dd_spl_uboot_boot"
 	fi
 	empty_line
 	generate_line 40
