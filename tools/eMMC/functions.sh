@@ -863,10 +863,14 @@ _copy_boot() {
 		fi
 	fi
 
-	if [ -f /boot/uboot/MLO ] ; then
+	if [ ! "x${boot_drive}" = "x${root_drive}" ] || [ -f /boot/uboot/MLO ] ; then
 		echo_broadcast "==> rsync: /boot/uboot/ -> ${tmp_boot_dir}"
 		get_rsync_options
 		rsync -aAxv $rsync_options /boot/uboot/* ${tmp_boot_dir} --exclude={MLO,u-boot.img,uEnv.txt} || write_failure
+		if [ ! "x${boot_drive}" = "x${root_drive}" ] && [ -f /boot/uboot/uEnv.txt ] ; then
+			echo_broadcast "==> Found uEnv.txt in boot partition, copying"
+			cp -v /boot/uboot/uEnv.txt ${tmp_boot_dir}/
+		fi
 		flush_cache
 		empty_line
 		generate_line 80 '='
@@ -1410,15 +1414,17 @@ prepare_drive() {
   partition_device
 
   if [ "${boot_partition}x" != "${rootfs_partition}x" ] ; then
-    tmp_boot_dir="/tmp/boot"
-    _prepare_future_boot
-    _copy_boot
-    _teardown_future_boot
-
     tmp_rootfs_dir="/tmp/rootfs"
     _prepare_future_rootfs
+
+    tmp_boot_dir="/tmp/rootfs/boot"
+    _prepare_future_boot
+    _copy_boot
+
     media_rootfs="2"
     _copy_rootfs
+
+    _teardown_future_boot
     _teardown_future_rootfs
   else
     rootfs_label=${boot_label}
