@@ -186,6 +186,10 @@ prepare_environment() {
 		echo_broadcast "====> Giving system time to stablize..."
 		countdown 5
 		echo_broadcast "====> Mounting ${boot_drive} Read Only over /boot/uboot"
+		if [ ! -d /boot/uboot ] ; then
+			echo_broadcast "====> Directory /boot/uboot unexist, create it"
+			mkdir -p /boot/uboot
+		fi
 		mount ${boot_drive} /boot/uboot -o ro || try_vfat
 	fi
 
