@@ -252,6 +252,18 @@ fi
 #Just Cleanup /etc/issue, systemd starts up tty before these are updated...
 sed -i -e '/Address/d' /etc/issue || true
 
+
+#rfkill unblock 0: hci0: Bluetooth
+echo '1' > /sys/class/rfkill/rfkill0/state
+
+#rfkill unblock 1: phy0: Wireless LAN
+echo '1' > /sys/class/rfkill/rfkill1/state
+
+#rfkill unblock 2: brcmfmac-wifi: Wireless LAN
+echo '1' > /sys/class/rfkill/rfkill2/state
+
+
+
 check_getty_tty=$(systemctl is-active serial-getty@ttyGS0.service || true)
 if [ "x${check_getty_tty}" = "xinactive" ] ; then
 	systemctl restart serial-getty@ttyGS0.service || true
