@@ -120,6 +120,9 @@ if [ -f /proc/device-tree/model ] ; then
 	Seeed_i\.MX6_ULL_NPi_Board)
 		script="imx6ull_npi.sh"
 		;;
+	Seeed_NPi_STM32MP157C_Board)
+		script="stm32mp1_npi.sh"
+		;;
 	*)
 		script="generic.sh"
 		;;
