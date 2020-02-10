@@ -157,12 +157,15 @@ prepare_environment() {
 	find_root_drive
 	echo_broadcast "====> Root drive identified at [${root_drive}]"
 	boot_drive=${root_drive%?}1
+	if [ "`type -t find_boot_drive 2>/dev/null`" = "function" ]; then
+		find_boot_drive
+	fi
 	echo_broadcast "==> Boot Drive [${boot_drive}]"
 	echo_broadcast "==> Figuring out Source and Destination devices"
-	if [ "x${boot_drive}" = "x/dev/mmcblk0p1" ] ; then
+	if [ "x${root_drive%?}" = "x/dev/mmcblk0p" ] ; then
 		source="/dev/mmcblk0"
 		destination="/dev/mmcblk1"
-	elif [ "x${boot_drive}" = "x/dev/mmcblk1p1" ] ; then
+	elif [ "x${root_drive%?}" = "x/dev/mmcblk1p" ] ; then
 		source="/dev/mmcblk1"
 		destination="/dev/mmcblk0"
 	else
@@ -458,6 +461,8 @@ write_failure() {
   flush_cache
   umount $(dev2dir ${destination}p1) > /dev/null 2>&1 || true
   umount $(dev2dir ${destination}p2) > /dev/null 2>&1 || true
+  umount $(dev2dir ${boot_partition})   >& /dev/null || true
+  umount $(dev2dir ${rootfs_partition}) >& /dev/null || true
   inf_loop
 }
 
